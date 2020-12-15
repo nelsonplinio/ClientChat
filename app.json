@@ -1,0 +1,12 @@
+{
+  "name": "ClientChat",
+  "displayName": "ClientChat",
+  "expo": {
+    "name": "ClientChat",
+    "slug": "ClientChat",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
