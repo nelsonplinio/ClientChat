@@ -91,7 +91,8 @@ const AuthProvider: React.FC = ({ children }) => {
 
   const signUp = useCallback(async ({ email, password, name }: SignUpData) => {
     try {
-      const signUpResult = await auth().createUserWithEmailAndPassword(email, password);
+      const signUpResult = await auth()
+        .createUserWithEmailAndPassword(email, password);
       
       storage()
         .collection('users')

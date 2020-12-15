@@ -7,9 +7,7 @@ import Routes from './routes';
 import { AuthProvider } from './hooks/auth';
 
 export default function App() {
-  const themeSelected = 'light';
-
-  const theme = getTheme(themeSelected);
+  const theme = getTheme();
 
   return (
     <ThemeProvider theme={theme}>

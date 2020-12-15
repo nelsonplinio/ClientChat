@@ -34,6 +34,7 @@ const themes = {
   light: lightTheme,
 }
 
-export default function getTheme(theme: 'light' | 'dark'): AppTheme {
+export default function getTheme(): AppTheme {
+  const theme = 'light'
   return themes[theme];
 }
