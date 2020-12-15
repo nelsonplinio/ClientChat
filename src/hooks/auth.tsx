@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import localStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
+import storage from '@react-native-firebase/firestore';
 interface User {
   id: string;
   avatar_url?: string;
@@ -24,9 +25,15 @@ interface SignInCredentials {
   password: string;
 }
 
+interface SignUpData {
+  email: string;
+  name: string;
+  password: string;
+}
 interface AuthContextData {
   user: User;
   signOut(): void;
+  signUp(signUpData: SignUpData): Promise<void>;
   updateUser(user: Partial<User>): void;
   signIn(credentials: SignInCredentials): Promise<void>;
 }
@@ -39,7 +46,72 @@ const AuthProvider: React.FC = ({ children }) => {
     { loadingUserData: true } as AuthState
   );
 
+  const signIn = useCallback(async ({ email, password }: SignInCredentials) => {
+    try {
+      const userLogged = 
+        await auth().signInWithEmailAndPassword(email, password);
 
+      const { uid: id } = userLogged.user;
+
+      const { name } = (await storage().collection('users').doc(id).get()).data();
+      
+      setData({
+        user: { 
+          id,
+          email,
+          name,
+        },
+      })
+    } catch (error) {
+      throw new Error(`Não foi possivel conectar na sua conta "${email}".\n
+        E-mail ou senha está incorreta!!
+        error ${error}
+      `)
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    setData({} as AuthState);
+    auth().signOut();
+  }, []);
+
+  const updateUser = useCallback(
+    (userUpdate: Partial<User>) => {
+      setData({
+        // token: data.token,
+        user: {
+          ...data.user,
+          ...userUpdate,
+        },
+        loadingUserData: false,
+      });
+    },
+    [data, setData],
+  );
+
+  const signUp = useCallback(async ({ email, password, name }: SignUpData) => {
+    try {
+      const signUpResult = await auth().createUserWithEmailAndPassword(email, password);
+      
+      storage()
+        .collection('users')
+        .doc(signUpResult.user.uid)
+        .set({
+          name,
+          email,
+        });
+      
+      setData({
+        user: {
+          name,
+          email,
+          id: signUpResult.user.uid,
+        }
+      })
+    } catch (error) {
+      throw new Error(`Não foi possivel criar sua conta\nerror ${error}`)
+    }
+  }, []);
   useEffect(() => {
     const loadUserData = async () => {
       // const token = await localStorage.getItem('@ClientChat:token');
@@ -63,69 +135,19 @@ const AuthProvider: React.FC = ({ children }) => {
     loadUserData();
   }, []);
 
-
-  const signIn = useCallback(async ({ email, password }: SignInCredentials) => {
-    try {
-      console.log(email, password)
-      const userLogged = 
-        await auth().signInWithEmailAndPassword(email, password);
-
-      const { displayName, uid: id } = userLogged.user;
-
-      setData({
-        user: { 
-          id,
-          email,
-          name: displayName,
-        },
-      })
-    } catch (error) {
-      throw new Error(`Não foi possivel conectar na sua conta "${email}".\n
-        E-mail ou senha está incorreta!!
-        error ${error}
-      `)
-    }
-
-    
-    // const response = await api.post('/sessions', { email, password });
-
-    // const { token, user } = response.data;
-
-    // api.defaults.headers.authorization = `Bearer ${token}`;
-
-    // setData({ token, user });
-  }, []);
-
-  const signOut = useCallback(async () => {
-    auth().signOut();
-    setData({} as AuthState);
-  }, []);
-
-  const updateUser = useCallback(
-    (userUpdate: Partial<User>) => {
-      setData({
-        // token: data.token,
-        user: {
-          ...data.user,
-          ...userUpdate,
-        },
-        loadingUserData: false,
-      });
-    },
-    [data, setData],
-  );
-
   useEffect(() => {
     if (!data.user) {
+      localStorage.removeItem('@ClientChat:user');
       return;
     }
-    // localStorage.setItem('@ClientChat:token', data.token);
+
     localStorage.setItem('@ClientChat:user', JSON.stringify(data.user));
   }, [data]);
 
+
   return (
     <AuthContext.Provider
-      value={{ user: data.user, signIn, signOut, updateUser }}
+      value={{ user: data.user, signIn, signOut, updateUser, signUp }}
     >
       {children}
     </AuthContext.Provider>
