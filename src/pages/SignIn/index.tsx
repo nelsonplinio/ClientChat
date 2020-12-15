@@ -42,7 +42,7 @@ const SignIn: React.FC = () => {
       Alert.alert(error.message);
     }
     setLoading(false);
-  }, []);
+  }, [email, password]);
 
   return (
     <KeyboardAvoidingView 
